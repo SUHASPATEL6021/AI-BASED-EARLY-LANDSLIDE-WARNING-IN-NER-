@@ -1,0 +1,821 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+
+    <title>LandslideGuard AI - Pan-India Early Warning System</title>
+
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+
+    <!-- Leaflet Map -->
+    <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+    <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+    <style>
+        * {
+            box-sizing: border-box;
+            margin: 0;
+            padding: 0;
+        }
+
+        body {
+            background-color: #0b1116;
+            color: #d1d5db;
+            font-family: system-ui, -apple-system, sans-serif;
+        }
+
+        .card-bg {
+            background-color: #131b22;
+            border: 1px solid #1f2937;
+        }
+
+        .text-cyan {
+            color: #00d2d3;
+        }
+
+        .bg-cyan {
+            background-color: #00d2d3;
+        }
+
+        .text-red-alert {
+            color: #ff4757;
+        }
+
+        .bg-red-alert {
+            background-color: #ff4757;
+        }
+
+        .bg-red-dim {
+            background-color: rgba(255, 71, 87, 0.1);
+        }
+
+        .text-yellow-alert {
+            color: #eccc68;
+        }
+
+        .bg-yellow-dim {
+            background-color: rgba(236, 204, 104, 0.1);
+        }
+
+        .bg-green-dim {
+            background-color: rgba(46, 204, 113, 0.1);
+        }
+
+        .text-green-alert {
+            color: #2ecc71;
+        }
+
+        .border-red-top {
+            border-top: 4px solid #ff4757;
+            border-top-left-radius: 0.5rem;
+            border-top-right-radius: 0.5rem;
+        }
+
+        #riskMap {
+            height: 520px;
+            width: 100%;
+            border-radius: 8px;
+            overflow: hidden;
+        }
+
+        .leaflet-popup-content-wrapper {
+            background: #131b22;
+            color: #d1d5db;
+            border: 1px solid #374151;
+        }
+
+        .leaflet-popup-tip {
+            background: #131b22;
+        }
+
+        .leaflet-popup-content {
+            font-family: system-ui, sans-serif;
+        }
+
+        .map-legend {
+            background: #131b22;
+            color: #d1d5db;
+            padding: 10px 14px;
+            border-radius: 8px;
+            border: 1px solid #374151;
+            line-height: 22px;
+            font-size: 12px;
+        }
+
+        .legend-dot {
+            display: inline-block;
+            width: 10px;
+            height: 10px;
+            border-radius: 50%;
+            margin-right: 6px;
+        }
+
+        /* NAVBAR & SEARCH STYLES */
+        .navbar {
+            height: 70px;
+            background: #131b22;
+            display: flex;
+            align-items: center;
+            justify-content: space-between;
+            padding: 0 30px;
+            border-bottom: 1px solid #1f2937;
+            position: sticky;
+            top: 0;
+            z-index: 1000;
+        }
+
+        .nav-buttons button {
+            background: transparent;
+            border: none;
+            color: #d1d5db;
+            margin-left: 20px;
+            cursor: pointer;
+            font-size: 14px;
+            font-weight: 500;
+        }
+
+        .nav-buttons button:hover {
+            color: #00d2d3;
+        }
+
+        .search-box {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 15px;
+        }
+
+        .search-box input {
+            flex: 1;
+            background: #0b1116;
+            border: 1px solid #374151;
+            border-radius: 6px;
+            padding: 10px 14px;
+            color: #ffffff;
+            outline: none;
+            font-size: 14px;
+        }
+
+        .search-box input:focus {
+            border-color: #00d2d3;
+        }
+
+        .search-box button {
+            background: #00d2d3;
+            color: #0b1116;
+            font-weight: 600;
+            padding: 10px 20px;
+            border: none;
+            border-radius: 6px;
+            cursor: pointer;
+            font-size: 14px;
+            transition: opacity 0.2s;
+        }
+
+        .search-box button:hover {
+            opacity: 0.9;
+        }
+
+        .region-chip {
+            background: #1f2937;
+            border: 1px solid #374151;
+            color: #d1d5db;
+            padding: 4px 12px;
+            border-radius: 16px;
+            font-size: 11px;
+            cursor: pointer;
+            transition: all 0.2s;
+        }
+
+        .region-chip:hover, .region-chip.active {
+            background: #00d2d3;
+            color: #0b1116;
+            font-weight: 600;
+            border-color: #00d2d3;
+        }
+    </style>
+</head>
+
+<body class="min-h-screen">
+
+    <!-- ================= NAVBAR ================= -->
+    <nav class="navbar mb-6">
+        <div class="flex items-center gap-3">
+            <div class="w-8 h-8 bg-teal-900 text-teal-400 font-bold flex items-center justify-center rounded text-sm">
+                L
+            </div>
+            <div>
+                <h1 class="text-sm font-bold text-gray-200 tracking-wider">
+                    LANDSLIDEGUARD AI <span class="text-cyan">PAN-INDIA</span>
+                </h1>
+                <p class="text-[10px] text-gray-500 uppercase tracking-widest mt-0.5">
+                    National Early Warning & Slope Monitoring Network
+                </p>
+            </div>
+        </div>
+
+        <div class="nav-buttons flex items-center">
+            <button onclick="scrollToMap()">Pan-India Map</button>
+            <button onclick="scrollToSMSBox()">Alerts</button>
+            <button onclick="showSafetyMessage()">Safety Protocol</button>
+        </div>
+    </nav>
+
+    <div class="p-4 md:p-8 flex justify-center">
+        <div class="max-w-6xl w-full">
+
+            <!-- ================= HEADER ================= -->
+            <header class="flex justify-between items-center mb-6 relative">
+                <div class="flex items-center gap-3">
+                    <span class="text-xs text-gray-400">Live Telemetry Feed & Risk Factor Assessment (Himalayas, Western Ghats, Northeast & Eastern Ghats)</span>
+                </div>
+
+                <div class="flex items-center gap-2 text-[10px] text-cyan tracking-widest uppercase">
+                    <div class="w-1.5 h-1.5 rounded-full bg-cyan shadow-[0_0_5px_#00d2d3]"></div>
+                    Monitoring All Indian Hill Regions
+                </div>
+            </header>
+
+            <!-- ================= MAIN ALERT ================= -->
+            <div class="card-bg border-red-top rounded-lg p-6 mb-4">
+                <div class="flex items-center gap-3 mb-4">
+                    <span class="bg-red-dim text-red-alert text-[10px] font-bold px-2 py-1 rounded flex items-center gap-1.5 uppercase tracking-wide">
+                        <div class="w-1.5 h-1.5 rounded-full bg-red-alert shadow-[0_0_5px_#ff4757]"></div>
+                        HIGH RISK CRITICAL ALERT
+                    </span>
+
+                    <span class="text-[11px] text-gray-500">
+                        Updated <span id="updateTime">14:32 IST</span>
+                    </span>
+                </div>
+
+                <h2 id="mainRiskTitle" class="text-[28px] font-bold text-red-alert mb-2 tracking-wide">
+                    WAYANAD & WESTERN GHATS HIGH RISK
+                </h2>
+
+                <p id="mainLocation" class="text-[13px] text-gray-400 mb-5">
+                    Selected Sector: Wayanad (Vythiri Slope), Kerala — Western Ghats Region
+                </p>
+
+                <p class="text-sm text-gray-200 mb-6 max-w-2xl leading-relaxed">
+                    Heavy monsoon downpour in the last 24–48 hours has saturated steep terrain. Critical landslide parameters have been breached in monitored sectors across Kerala, Uttarakhand, and Northeast India. Prepare for immediate relocation if instructed by disaster authorities.
+                </p>
+
+                <div class="flex gap-3 flex-wrap">
+                    <button onclick="showSafetyMessage()" class="bg-cyan text-[#0b1116] font-semibold px-4 py-2 rounded text-xs">
+                        What should I do?
+                    </button>
+
+                    <button onclick="scrollToSMSBox()" class="bg-transparent border border-gray-600 text-gray-300 font-semibold px-4 py-2 rounded text-xs hover:border-cyan transition-colors">
+                        Get Regional SMS Alerts
+                    </button>
+                </div>
+            </div>
+
+            <!-- ================= REGIONAL RISK OVERVIEW (ALL INDIA) ================= -->
+            <div class="flex items-center justify-between mb-3">
+                <h3 class="text-xs font-bold text-gray-400 uppercase tracking-wider">
+                    Regional Threat Summaries across India
+                </h3>
+                <div class="flex gap-2 flex-wrap" id="regionFilters">
+                    <button class="region-chip active" onclick="filterByRegion('ALL')">All India</button>
+                    <button class="region-chip" onclick="filterByRegion('North')">NW Himalayas</button>
+                    <button class="region-chip" onclick="filterByRegion('South')">Western Ghats</button>
+                    <button class="region-chip" onclick="filterByRegion('NE')">Northeast</button>
+                    <button class="region-chip" onclick="filterByRegion('East')">Eastern Ghats</button>
+                </div>
+            </div>
+
+            <div class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 mb-6" id="regionalCardsContainer">
+                <!-- Cards dynamically populated via JS -->
+            </div>
+
+            <!-- ================= REAL-TIME MAP & SEARCH LOCATION ================= -->
+            <div id="mapSection" class="card-bg rounded-lg p-5 mb-4">
+                <div class="flex justify-between items-center mb-4">
+                    <div>
+                        <h3 class="font-bold text-gray-200 text-[13px]">
+                            National Landslide Susceptibility & Live Telemetry Map
+                        </h3>
+                        <p class="text-[11px] text-gray-500 mt-1">
+                            Interactive Monitoring across All 18 Vulnerable Hill States & UTs
+                        </p>
+                    </div>
+
+                    <div class="text-[10px] text-cyan uppercase tracking-widest">
+                        ● Live Pan-India Grid
+                    </div>
+                </div>
+
+                <!-- SEARCH LOCATION BAR -->
+                <div class="search-box">
+                    <input type="text" id="locationSearchInput" placeholder="Search any Indian hill station/city (e.g., Wayanad, Shimla, Darjeeling, Munnar, Kedarnath, Ooty)..." onkeypress="handleSearchKeyPress(event)">
+                    <button onclick="searchLocation()">Search Region</button>
+                </div>
+
+                <!-- REAL TIME MAP -->
+                <div id="riskMap"></div>
+
+                <p class="text-[12px] text-gray-400 leading-relaxed mt-4">
+                    The map monitors major landslide-prone belts across India, including the Western Ghats (Kerala, Karnataka, Maharashtra, Tamil Nadu), North-West Himalayas (Uttarakhand, Himachal, J&K, Ladakh), Eastern Himalayas (Sikkim, North Bengal), Northeast Hill States, and Eastern Ghats (Andhra Pradesh, Odisha). Click any pin or search to inspect real-time satellite & ground telemetry.
+                </p>
+            </div>
+
+            <!-- ================= SENSOR DATA & RISK FACTOR BREAKDOWN ================= -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
+
+                <div class="card-bg rounded-lg p-5">
+                    <p class="text-[10px] text-gray-500 uppercase tracking-wider">Sector Rainfall (24h)</p>
+                    <p id="rainfallValue" class="text-2xl font-bold text-gray-100 mt-2">184 mm</p>
+                    <p class="text-xs text-red-alert mt-1" id="rainAlertLabel">Extremely Heavy Downpour</p>
+                </div>
+
+                <div class="card-bg rounded-lg p-5">
+                    <p class="text-[10px] text-gray-500 uppercase tracking-wider">Soil Saturation Level</p>
+                    <p id="soilValue" class="text-2xl font-bold text-gray-100 mt-2">89%</p>
+                    <p class="text-xs text-yellow-alert mt-1" id="soilAlertLabel">Critical Water Logging</p>
+                </div>
+
+                <div class="card-bg rounded-lg p-5">
+                    <p class="text-[10px] text-gray-500 uppercase tracking-wider">Composite Hazard Index</p>
+                    <p id="riskScore" class="text-2xl font-bold text-red-alert mt-2">91/100</p>
+                    <p class="text-xs text-red-alert mt-1" id="hazardAlertLabel">Red Level Danger</p>
+                </div>
+
+            </div>
+
+            <!-- RISK FACTOR BREAKDOWN WARNING -->
+            <div class="card-bg rounded-lg p-5 mb-4 border-l-4 border-yellow-500">
+                <h3 class="font-bold text-yellow-alert text-[13px] mb-2 flex items-center gap-2">
+                    ⚠️ RISK FACTOR BREAKDOWN WARNING
+                </h3>
+                <p class="text-[12px] text-gray-300 leading-relaxed" id="riskFactorBreakdownText">
+                    Current telemetry indicates a critical cumulative score. Rainfall intensity contributes 40% to overall instability, exacerbated by high soil saturation (30%) and steep slope gradients (30%). Continuous precipitation may exceed the safety threshold within hours.
+                </p>
+            </div>
+
+            <!-- ================= INSTRUCTIONS ================= -->
+            <div class="card-bg rounded-lg p-5 mb-4">
+                <h3 class="font-bold text-gray-200 text-[13px] mb-5">
+                    National Disaster Management Guidelines (NDMA) — Immediate Actions
+                </h3>
+
+                <ul class="space-y-4 mb-5">
+                    <li class="flex gap-3 text-[13px] text-gray-300">
+                        <div class="flex-shrink-0 w-5 h-5 rounded-full bg-[#004d4d] text-cyan flex items-center justify-center text-[11px] font-bold">1</div>
+                        <p>Move away from steep slope edges, drainage channels, riverbanks, and old quarry locations immediately.</p>
+                    </li>
+
+                    <li class="flex gap-3 text-[13px] text-gray-300">
+                        <div class="flex-shrink-0 w-5 h-5 rounded-full bg-[#004d4d] text-cyan flex items-center justify-center text-[11px] font-bold">2</div>
+                        <p>Do not sleep in ground-floor rooms directly facing unreinforced hillsides or retaining walls during intense rainfall night hours.</p>
+                    </li>
+
+                    <li class="flex gap-3 text-[13px] text-gray-300">
+                        <div class="flex-shrink-0 w-5 h-5 rounded-full bg-[#004d4d] text-cyan flex items-center justify-center text-[11px] font-bold">3</div>
+                        <p>Prepare an Emergency Go-Bag containing Aadhaar/documents, necessary medication, torch, dry food, and power banks.</p>
+                    </li>
+
+                    <li class="flex gap-3 text-[13px] text-gray-300">
+                        <div class="flex-shrink-0 w-5 h-5 rounded-full bg-[#004d4d] text-cyan flex items-center justify-center text-[11px] font-bold">4</div>
+                        <p>Avoid driving through hill ghat roads (e.g., NH-10 Sikkim, Charmadi Ghat KA, Rishikesh-Badrinath highway, Wayanad ghats) during red alert advisories.</p>
+                    </li>
+                </ul>
+
+                <div class="bg-[#241115] rounded p-4 text-[13px]">
+                    <p class="text-gray-300 leading-relaxed">
+                        <span class="text-red-alert font-bold">Pan-India Helpline:</span> Dial <strong>112</strong> (National Emergency Response System) or <strong>1070/1077</strong> (State Disaster Management Authority) for urgent rescue.
+                    </p>
+                </div>
+            </div>
+
+            <!-- ================= WARNING SIGNS ================= -->
+            <div class="card-bg rounded-lg p-5 mb-4">
+                <h3 class="font-bold text-gray-200 text-[13px] mb-5">
+                    Geological Warning Signs — Evacuate Immediately If Observed
+                </h3>
+
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-x-8 gap-y-4 bg-[#111921] p-4 rounded border border-gray-800">
+                    <div class="flex items-start gap-2.5">
+                        <div class="w-1 h-1 mt-2 rounded-full bg-[#eccc68] flex-shrink-0"></div>
+                        <p class="text-[13px] text-gray-300">New tension cracks on slopes, paved roads, house foundations, or retaining structures.</p>
+                    </div>
+
+                    <div class="flex items-start gap-2.5">
+                        <div class="w-1 h-1 mt-2 rounded-full bg-[#eccc68] flex-shrink-0"></div>
+                        <p class="text-[13px] text-gray-300">Sudden muddy water discharge or rapid changes in natural spring flows on hill slopes.</p>
+                    </div>
+
+                    <div class="flex items-start gap-2.5">
+                        <div class="w-1 h-1 mt-2 rounded-full bg-[#eccc68] flex-shrink-0"></div>
+                        <p class="text-[13px] text-gray-300">Tilting of trees, utility poles, or fences along hill slumps.</p>
+                    </div>
+
+                    <div class="flex items-start gap-2.5">
+                        <div class="w-1 h-1 mt-2 rounded-full bg-[#eccc68] flex-shrink-0"></div>
+                        <p class="text-[13px] text-gray-300">Faint rumbling sounds that increase in volume or sound of snapping tree roots.</p>
+                    </div>
+                </div>
+            </div>
+
+            <!-- ================= SMS SUBSCRIPTION BOX ================= -->
+            <div id="smsBox" class="card-bg rounded-lg p-5 mb-4">
+                <h3 class="text-sm font-bold text-gray-200 mb-2">
+                    Subscribe to District-Specific Landslide SMS Broadcasts
+                </h3>
+
+                <p class="text-xs text-gray-500 mb-4">
+                    Enter your mobile number and state to receive real-time automated warnings when your regional risk level exceeds Watch thresholds.
+                </p>
+
+                <div class="flex flex-col sm:flex-row gap-2">
+                    <input type="tel" id="phoneNumber" placeholder="+91 XXXXX XXXXX" class="flex-1 bg-[#0b1116] border border-gray-700 rounded px-3 py-2 text-sm text-white outline-none focus:border-cyan">
+
+                    <select id="stateSelect" class="bg-[#0b1116] border border-gray-700 text-gray-300 text-xs rounded px-3 py-2 outline-none focus:border-cyan">
+                        <option value="ALL">All Indian Hill States</option>
+                        <option value="Kerala">Kerala</option>
+                        <option value="Uttarakhand">Uttarakhand</option>
+                        <option value="Himachal Pradesh">Himachal Pradesh</option>
+                        <option value="Jammu & Kashmir">Jammu & Kashmir / Ladakh</option>
+                        <option value="Sikkim">Sikkim & N. Bengal</option>
+                        <option value="Assam">Assam & Meghalaya</option>
+                        <option value="Tamil Nadu">Tamil Nadu (Nilgiris/Kodaikanal)</option>
+                        <option value="Karnataka">Karnataka (Kodagu/Western Ghats)</option>
+                        <option value="Maharashtra">Maharashtra (Konkan Ghats)</option>
+                        <option value="Other">Other States</option>
+                    </select>
+
+                    <button onclick="subscribeSMS()" class="bg-cyan text-[#0b1116] font-semibold px-5 py-2 rounded text-xs">
+                        Activate Alerts
+                    </button>
+                </div>
+
+                <p id="smsMessage" class="text-xs mt-3"></p>
+            </div>
+
+            <!-- ================= SMS STATUS ================= -->
+            <div id="smsStatus" class="card-bg rounded-lg p-5 mb-8 flex items-center gap-4">
+                <div class="w-7 h-7 rounded-full bg-[#004d4d] flex items-center justify-center text-cyan flex-shrink-0">
+                    ✓
+                </div>
+
+                <div>
+                    <h4 id="smsStatusTitle" class="text-cyan font-semibold text-[13px] mb-0.5">
+                        SMS alerts system ready
+                    </h4>
+
+                    <p id="smsStatusText" class="text-[12px] text-gray-400">
+                        Enter your phone number above to connect to the Pan-India Disaster Early Warning Mesh.
+                    </p>
+                </div>
+            </div>
+
+            <!-- ================= FOOTER ================= -->
+            <footer class="text-center text-[9px] text-gray-600 tracking-widest uppercase mb-4">
+                LANDSLIDEGUARD AI · NATIONAL DISASTER MONITORING INITIATIVE · COVERING ALL 28 STATES & 8 UTs
+            </footer>
+
+        </div>
+    </div>
+
+    <!-- ========================================================= -->
+    <!-- JAVASCRIPT -->
+    <!-- ========================================================= -->
+    <script>
+
+        /* =========================================================
+           SCROLL & NAVIGATION HELPERS
+        ========================================================= */
+        function scrollToSMSBox() {
+            const box = document.getElementById("smsBox");
+            box.scrollIntoView({ behavior: 'smooth' });
+            document.getElementById("phoneNumber").focus();
+        }
+
+        function scrollToMap() {
+            const mapSec = document.getElementById("mapSection");
+            mapSec.scrollIntoView({ behavior: 'smooth' });
+        }
+
+        /* =========================================================
+           PAN-INDIA COMPREHENSIVE LANDSLIDE RISK LOCATIONS
+        ========================================================= */
+        const riskLocations = [
+            // --- WESTERN GHATS (SOUTH & WEST INDIA) ---
+            { name: "Wayanad (Vythiri / Meppadi)", state: "Kerala", region: "South", lat: 11.5564, lng: 76.1320, rainfall: 210, soil: 92, slope: 38, risk: "HIGH" },
+            { name: "Munnar & Idukki Slopes", state: "Kerala", region: "South", lat: 10.0889, lng: 77.0595, rainfall: 175, soil: 86, slope: 40, risk: "HIGH" },
+            { name: "Nilgiris (Ooty - Coonoor Ghat)", state: "Tamil Nadu", region: "South", lat: 11.4064, lng: 76.6932, rainfall: 145, soil: 80, slope: 36, risk: "HIGH" },
+            { name: "Kodaikanal Hill Belt", state: "Tamil Nadu", region: "South", lat: 10.2381, lng: 77.4892, rainfall: 98, soil: 68, slope: 30, risk: "WATCH" },
+            { name: "Kodagu (Madikeri Slopes)", state: "Karnataka", region: "South", lat: 12.4244, lng: 75.7382, rainfall: 162, soil: 84, slope: 33, risk: "HIGH" },
+            { name: "Charmadi Ghat & Chikkamagaluru", state: "Karnataka", region: "South", lat: 13.0883, lng: 75.4402, rainfall: 130, soil: 78, slope: 35, risk: "WATCH" },
+            { name: "Mahabaleshwar & Western Slopes", state: "Maharashtra", region: "South", lat: 17.9252, lng: 73.6577, rainfall: 188, soil: 85, slope: 31, risk: "HIGH" },
+            { name: "Raigad & Ghatghar Corridor", state: "Maharashtra", region: "South", lat: 18.2323, lng: 73.4442, rainfall: 112, soil: 72, slope: 28, risk: "WATCH" },
+            { name: "Anmod Ghat & Western Border", state: "Goa", region: "South", lat: 15.4381, lng: 74.2251, rainfall: 120, soil: 76, slope: 26, risk: "WATCH" },
+
+            // --- NORTH-WEST HIMALAYAS ---
+            { name: "Kedarnath Highway & Rudraprayag", state: "Uttarakhand", region: "North", lat: 30.2849, lng: 78.9811, rainfall: 168, soil: 88, slope: 44, risk: "HIGH" },
+            { name: "Joshimath & Chamoli Slopes", state: "Uttarakhand", region: "North", lat: 30.5526, lng: 79.5641, rainfall: 140, soil: 82, slope: 42, risk: "HIGH" },
+            { name: "Nainital Lake Catchment Slope", state: "Uttarakhand", region: "North", lat: 29.3919, lng: 79.4542, rainfall: 125, soil: 75, slope: 35, risk: "WATCH" },
+            { name: "Pithoragarh & Dharchula Belt", state: "Uttarakhand", region: "North", lat: 29.5829, lng: 80.2182, rainfall: 152, soil: 81, slope: 41, risk: "HIGH" },
+            { name: "Shimla Urban Ridge & Highway", state: "Himachal Pradesh", region: "North", lat: 31.1048, lng: 77.1734, rainfall: 135, soil: 79, slope: 37, risk: "WATCH" },
+            { name: "Kullu - Mandi Highway Corridor", state: "Himachal Pradesh", region: "North", lat: 31.9579, lng: 77.1095, rainfall: 160, soil: 84, slope: 39, risk: "HIGH" },
+            { name: "Dharamshala & McLeodGanj Slopes", state: "Himachal Pradesh", region: "North", lat: 32.2190, lng: 76.3234, rainfall: 172, soil: 83, slope: 38, risk: "HIGH" },
+            { name: "Kinnaur Highway (Reckong Peo)", state: "Himachal Pradesh", region: "North", lat: 31.5372, lng: 78.2725, rainfall: 85, soil: 62, slope: 45, risk: "WATCH" },
+            { name: "Ramban & Banihal (Jammu-Srinagar NH)", state: "Jammu & Kashmir", region: "North", lat: 33.2432, lng: 75.2412, rainfall: 148, soil: 81, slope: 40, risk: "HIGH" },
+            { name: "Kargil - Zoji La Corridor", state: "Ladakh", region: "North", lat: 34.2811, lng: 75.4741, rainfall: 42, soil: 38, slope: 38, risk: "LOW" },
+
+            // --- EASTERN HIMALAYAS & NORTHEAST ---
+            { name: "Gangtok & East Sikkim Slopes", state: "Sikkim", region: "NE", lat: 27.3389, lng: 88.6065, rainfall: 165, soil: 87, slope: 43, risk: "HIGH" },
+            { name: "Mangan & North Sikkim Highway", state: "Sikkim", region: "NE", lat: 27.5050, lng: 88.5350, rainfall: 180, soil: 89, slope: 46, risk: "HIGH" },
+            { name: "Darjeeling & Kurseong Hills", state: "West Bengal", region: "NE", lat: 27.0410, lng: 88.2663, rainfall: 150, soil: 83, slope: 37, risk: "HIGH" },
+            { name: "Kalimpong Highway (NH-10)", state: "West Bengal", region: "NE", lat: 27.0600, lng: 88.4700, rainfall: 158, soil: 85, slope: 39, risk: "HIGH" },
+            { name: "Guwahati Hills & Kamrup Slopes", state: "Assam", region: "NE", lat: 26.1445, lng: 91.7362, rainfall: 156, soil: 86, slope: 34, risk: "HIGH" },
+            { name: "Assam-Meghalaya Border Sector", state: "Assam / Meghalaya", region: "NE", lat: 25.6500, lng: 91.8500, rainfall: 142, soil: 82, slope: 38, risk: "HIGH" },
+            { name: "Cherrapunji & Sohra Rim", state: "Meghalaya", region: "NE", lat: 25.2702, lng: 91.7323, rainfall: 195, soil: 89, slope: 36, risk: "HIGH" },
+            { name: "Shillong & Khasi Hills", state: "Meghalaya", region: "NE", lat: 25.5788, lng: 91.8933, rainfall: 118, soil: 74, slope: 31, risk: "WATCH" },
+            { name: "Itanagar & Papum Pare", state: "Arunachal Pradesh", region: "NE", lat: 27.0844, lng: 93.6053, rainfall: 138, soil: 79, slope: 41, risk: "HIGH" },
+            { name: "Kohima Ridge & NH-2 Corridor", state: "Nagaland", region: "NE", lat: 25.6751, lng: 94.1086, rainfall: 110, soil: 72, slope: 35, risk: "WATCH" },
+            { name: "Imphal West Hills", state: "Manipur", region: "NE", lat: 24.8170, lng: 93.9368, rainfall: 102, soil: 69, slope: 30, risk: "WATCH" },
+            { name: "Aizawl Slope Corridor", state: "Mizoram", region: "NE", lat: 23.7271, lng: 92.7176, rainfall: 115, soil: 73, slope: 32, risk: "WATCH" },
+            { name: "Champhai Ridge", state: "Mizoram", region: "NE", lat: 23.4747, lng: 93.3250, rainfall: 58, soil: 48, slope: 22, risk: "LOW" },
+            { name: "Jampui Hills", state: "Tripura", region: "NE", lat: 24.0560, lng: 92.2640, rainfall: 88, soil: 68, slope: 27, risk: "WATCH" },
+
+            // --- EASTERN GHATS & CENTRAL INDIA ---
+            { name: "Visakhapatnam Hill Slopes (Araku)", state: "Andhra Pradesh", region: "East", lat: 18.3273, lng: 82.8775, rainfall: 92, soil: 66, slope: 28, risk: "WATCH" },
+            { name: "Koraput & Rayagada Hill Slopes", state: "Odisha", region: "East", lat: 18.8135, lng: 82.7123, rainfall: 86, soil: 64, slope: 25, risk: "WATCH" },
+            { name: "Pachmarhi Hill Slopes", state: "Madhya Pradesh", region: "East", lat: 22.4674, lng: 78.4335, rainfall: 62, soil: 50, slope: 20, risk: "LOW" }
+        ];
+
+        /* =========================================================
+           INITIALIZE MAP
+        ========================================================= */
+        // Centered over India
+        const map = L.map("riskMap").setView([22.5937, 78.9629], 5);
+
+        L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+            maxZoom: 18,
+            attribution: "&copy; OpenStreetMap contributors | LandslideGuard AI Pan-India"
+        }).addTo(map);
+
+        function getRiskColor(risk) {
+            if (risk === "HIGH") return "#ff4757";
+            if (risk === "WATCH") return "#eccc68";
+            return "#2ecc71";
+        }
+
+        const markersMap = {};
+
+        function renderMapMarkers() {
+            riskLocations.forEach(function(point) {
+                const color = getRiskColor(point.risk);
+
+                const marker = L.circleMarker([point.lat, point.lng], {
+                    radius: point.risk === "HIGH" ? 10 : 8,
+                    color: color,
+                    fillColor: color,
+                    fillOpacity: 0.8,
+                    weight: 2
+                });
+
+                marker.addTo(map);
+
+                const popupContent = `
+                    <div style="min-width:210px">
+                        <h3 style="font-weight:bold; font-size:14px; margin-bottom:4px; color:#ffffff;">${point.name}</h3>
+                        <p style="font-size:11px; color:#9ca3af; margin-bottom:8px;">${point.state} (${point.region} Zone)</p>
+                        <p style="font-size:12px;"><b>Rainfall (24h):</b> ${point.rainfall} mm</p>
+                        <p style="font-size:12px;"><b>Soil Moisture:</b> ${point.soil}%</p>
+                        <p style="font-size:12px;"><b>Slope Gradient:</b> ${point.slope}°</p>
+                        <p style="margin-top:8px; font-size:12px; border-top:1px solid #374151; padding-top:6px;">
+                            <b>Calculated Risk:</b> 
+                            <span style="color:${color}; font-weight:bold; float:right;">${point.risk}</span>
+                        </p>
+                    </div>
+                `;
+
+                marker.bindPopup(popupContent);
+
+                // Add click listener to sync dashboard metrics
+                marker.on('click', function() {
+                    updateDashboardWithLocation(point);
+                });
+
+                markersMap[point.name.toLowerCase()] = { marker, data: point };
+            });
+        }
+
+        /* =========================================================
+           POPULATE REGIONAL CARDS DYNAMICALLY
+        ========================================================= */
+        function populateRegionalCards(filter = 'ALL') {
+            const container = document.getElementById("regionalCardsContainer");
+            container.innerHTML = "";
+
+            const filtered = filter === 'ALL' 
+                ? riskLocations.slice(0, 8) 
+                : riskLocations.filter(item => item.region === filter).slice(0, 8);
+
+            filtered.forEach(point => {
+                const colorClass = point.risk === 'HIGH' ? 'bg-red-dim text-red-alert' : 
+                                  (point.risk === 'WATCH' ? 'bg-yellow-dim text-yellow-alert' : 'bg-green-dim text-green-alert');
+                const emoji = point.risk === 'HIGH' ? '🔴 HIGH' : (point.risk === 'WATCH' ? '🟡 WATCH' : '🟢 LOW');
+
+                const cardHtml = `
+                    <div class="card-bg rounded-lg p-4 cursor-pointer hover:border-cyan transition-all" onclick="selectLocationByName('${point.name}')">
+                        <div class="flex justify-between items-start mb-2">
+                            <div>
+                                <h4 class="font-bold text-gray-200 text-[12px] line-clamp-1">${point.name}</h4>
+                                <p class="text-[10px] text-gray-500">${point.state}</p>
+                            </div>
+                            <span class="${colorClass} text-[8px] font-bold px-2 py-0.5 rounded uppercase flex-shrink-0">
+                                ${emoji}
+                            </span>
+                        </div>
+                        <div class="flex justify-between items-center text-[11px] text-gray-400 mt-3 pt-2 border-t border-gray-800">
+                            <span>Rain: <strong class="text-gray-200">${point.rainfall}mm</strong></span>
+                            <span>Soil: <strong class="text-gray-200">${point.soil}%</strong></span>
+                        </div>
+                    </div>
+                `;
+                container.innerHTML += cardHtml;
+            });
+        }
+
+        function filterByRegion(region) {
+            document.querySelectorAll(".region-chip").forEach(btn => btn.classList.remove("active"));
+            event.target.classList.add("active");
+            populateRegionalCards(region);
+        }
+
+        function selectLocationByName(name) {
+            const item = markersMap[name.toLowerCase()];
+            if (item) {
+                map.setView([item.data.lat, item.data.lng], 10);
+                item.marker.openPopup();
+                updateDashboardWithLocation(item.data);
+                scrollToMap();
+            }
+        }
+
+        /* =========================================================
+           MAP LEGEND
+        ========================================================= */
+        const legend = L.control({ position: "bottomright" });
+
+        legend.onAdd = function() {
+            const div = L.DomUtil.create("div", "map-legend");
+            div.innerHTML = `
+                <strong style="color:#ffffff;">National Risk Level</strong><br>
+                <span class="legend-dot" style="background:#ff4757"></span> High Danger (Evacuate)<br>
+                <span class="legend-dot" style="background:#eccc68"></span> Watch Advisory<br>
+                <span class="legend-dot" style="background:#2ecc71"></span> Normal Monitoring
+            `;
+            return div;
+        };
+
+        legend.addTo(map);
+
+        /* =========================================================
+           SEARCH LOCATION FUNCTIONALITY
+        ========================================================= */
+        function searchLocation() {
+            const query = document.getElementById("locationSearchInput").value.trim().toLowerCase();
+            if (!query) return;
+
+            let found = false;
+            for (let name in markersMap) {
+                if (name.includes(query) || markersMap[name].data.state.toLowerCase().includes(query)) {
+                    const target = markersMap[name];
+                    map.setView([target.data.lat, target.data.lng], 10);
+                    target.marker.openPopup();
+                    updateDashboardWithLocation(target.data);
+                    found = true;
+                    break;
+                }
+            }
+
+            if (!found) {
+                alert("Location not found in active telemetry list. Try searching for major regions like Wayanad, Kedarnath, Shimla, Munnar, Gangtok, Ooty, Darjeeling, etc.");
+            }
+        }
+
+        function handleSearchKeyPress(e) {
+            if (e.key === 'Enter') {
+                searchLocation();
+            }
+        }
+
+        function updateDashboardWithLocation(data) {
+            document.getElementById("mainLocation").textContent = "Selected Sector: " + data.name + ", " + data.state + " (" + data.region + " Zone)";
+            document.getElementById("mainRiskTitle").textContent = data.name.toUpperCase() + " " + data.risk + " RISK";
+            document.getElementById("rainfallValue").textContent = data.rainfall + " mm";
+            document.getElementById("soilValue").textContent = data.soil + "%";
+
+            const calculatedScore = calculateRisk(data.rainfall, data.soil, data.slope);
+            document.getElementById("riskScore").textContent = calculatedScore + "/100";
+
+            let riskColor = getRiskColor(data.risk);
+            document.getElementById("riskScore").style.color = riskColor;
+
+            document.getElementById("riskFactorBreakdownText").textContent = 
+                `TELEMETRY BREAKDOWN FOR ${data.name.toUpperCase()} (${data.state.toUpperCase()}): Calculated Risk Score is ${calculatedScore}/100. Factors: 24h Rainfall (${data.rainfall} mm), Soil Saturation (${data.soil}%), Slope Gradient (${data.slope}°). Status: ${data.risk}. Maintain emergency protocols as advised by SDMA.`;
+        }
+
+        /* =========================================================
+           RULE-BASED AI RISK CALCULATOR
+        ========================================================= */
+        function calculateRisk(rainfall, soilMoisture, slope) {
+            let rainfallScore = Math.min(rainfall / 200 * 100, 100);
+            let soilScore = Math.min(soilMoisture, 100);
+            let slopeScore = Math.min(slope / 45 * 100, 100);
+
+            let score = (rainfallScore * 0.40) + (soilScore * 0.30) + (slopeScore * 0.30);
+            return Math.round(score);
+        }
+
+        /* =========================================================
+           LIVE TELEMETRY SIMULATOR
+        ========================================================= */
+        function updateLiveData() {
+            const now = new Date();
+            const time = now.toLocaleTimeString("en-IN", {
+                hour: "2-digit",
+                minute: "2-digit",
+                hour12: false
+            });
+
+            document.getElementById("updateTime").textContent = time + " IST";
+        }
+
+        setInterval(updateLiveData, 10000);
+
+        /* =========================================================
+           SMS ALERT SYSTEM
+        ========================================================= */
+        function subscribeSMS() {
+            const phoneInput = document.getElementById("phoneNumber");
+            const stateSel = document.getElementById("stateSelect");
+            const message = document.getElementById("smsMessage");
+            const phone = phoneInput.value.trim();
+
+            if (phone === "") {
+                message.textContent = "Please enter your mobile number.";
+                message.className = "text-xs mt-3 text-red-400";
+                return;
+            }
+
+            const cleanPhone = phone.replace(/\s/g, "");
+            const indianNumber = /^(\+91|91)?[6-9][0-9]{9}$/;
+
+            if (!indianNumber.test(cleanPhone)) {
+                message.textContent = "Please enter a valid Indian mobile number.";
+                message.className = "text-xs mt-3 text-red-400";
+                return;
+            }
+
+            localStorage.setItem("landslideAlertPhonePanIndia", cleanPhone);
+            localStorage.setItem("landslideAlertState", stateSel.value);
+
+            message.textContent = "✓ Pan-India SMS alerts activated successfully for " + (stateSel.value === "ALL" ? "All States" : stateSel.value) + ".";
+            message.className = "text-xs mt-3 text-cyan";
+
+            document.getElementById("smsStatusTitle").textContent = "Signed up for Pan-India Alerts";
+            document.getElementById("smsStatusText").textContent = "Registered Number: " + cleanPhone + " | Monitored Region: " + stateSel.value;
+
+            alert("Pan-India Landslide Alert Activated!\n\nMobile: " + cleanPhone + "\nRegion Focus: " + stateSel.value + "\n\nAlerts will trigger automatically when local sensors cross hazard thresholds.");
+        }
+
+        function showSafetyMessage() {
+            alert(
+                "NATIONAL LANDSLIDE SAFETY PROTOCOL (NDMA Guidelines)\n\n" +
+                "1. Move away from steep slopes, stream channels, and mountain roads.\n\n" +
+                "2. Do not cross swollen mountain rivulets or debris flows.\n\n" +
+                "3. Keep phones charged and emergency Go-Bag ready.\n\n" +
+                "4. Listen to local AIR broadcasts / SDMA advisories.\n\n" +
+                "5. Pan-India Emergency Number: 112"
+            );
+        }
+
+        // Initialize page elements on load
+        window.addEventListener("load", function () {
+            renderMapMarkers();
+            populateRegionalCards('ALL');
+
+            const savedPhone = localStorage.getItem("landslideAlertPhonePanIndia");
+            if (savedPhone) {
+                document.getElementById("phoneNumber").value = savedPhone;
+                const savedState = localStorage.getItem("landslideAlertState") || "ALL";
+                document.getElementById("stateSelect").value = savedState;
+                document.getElementById("smsStatusTitle").textContent = "Signed up for Pan-India Alerts";
+                document.getElementById("smsStatusText").textContent = "Registered Number: " + savedPhone + " | Region: " + savedState;
+            }
+
+            updateLiveData();
+        });
+
+    </script>
+</body>
+
+</html>
