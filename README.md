@@ -587,7 +587,7 @@ Official information from agencies such as GSI and other relevant government aut
 
 ---
 
-# 👥 Team
+# 👥 NEURAL NOMADS
 
 ### Smart India Hackathon Team
 
@@ -595,16 +595,16 @@ Official information from agencies such as GSI and other relevant government aut
 
 **Domain:** Disaster Management / Artificial Intelligence / GIS / Web Technology
 
-**Institution:** YOUR COLLEGE NAME
+**Institution:** KARNAVATI UNIVERSITY
 
 **Team Members:**
 
-* Member 1 — Name
-* Member 2 — Name
-* Member 3 — Name
-* Member 4 — Name
-* Member 5 — Name
-* Member 6 — Name
+* Member 1 — Patel Suhas
+* Member 2 — Trezza Patel
+* Member 3 — Megh Jadav
+* Member 4 — Shiv Luhar
+* Member 5 — Manmayi Dave
+* Member 6 — Rudra Bhati
 
 ---
 
